@@ -6,6 +6,7 @@ description = "Audio synthesizer"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
+cpal = "0.8"
 
 [dev-dependecies]
 cpal = "0.8"
