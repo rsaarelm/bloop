@@ -1,18 +1,27 @@
-/// Time in nanoseconds.
-pub type Duration = f64;
+use std::cmp::max;
+
+/// Conversion factor for the flick time unit
+pub const FLICKS_PER_SECOND: u64 = 705600000;
+
+/// Flick time unit.
+///
+/// See https://github.com/OculusVR/Flicks
+pub type Flick = u64;
+
+pub type Sample = i8;
 
 pub trait Synth {
-    /// Given time in seconds, return sample in [-1.0, 1.0].
-    fn sample(&self, t: Duration) -> f32;
+    /// Given time in flicks, return sample in [-128, 127].
+    fn sample(&self, t: Flick) -> Sample;
 }
 
 pub enum Primitive<T: Synth> {
-    Note(Duration, T),
-    Rest(Duration),
+    Note(Flick, T),
+    Rest(Flick),
 }
 
 impl<T: Synth> Primitive<T> {
-    fn duration(&self) -> Duration {
+    fn duration(&self) -> Flick {
         use Primitive::*;
         match self {
             Note(d, _) => *d,
@@ -22,15 +31,15 @@ impl<T: Synth> Primitive<T> {
 }
 
 impl<T: Synth> Synth for Primitive<T> {
-    fn sample(&self, t: Duration) -> f32 {
+    fn sample(&self, t: Flick) -> Sample {
         use Primitive::*;
         match self {
             Note(d, a) => if t <= *d {
                 a.sample(t)
             } else {
-                0.0
+                0
             },
-            Rest(_) => 0.0,
+            Rest(_) => 0,
         }
     }
 }
@@ -48,18 +57,12 @@ pub enum Music<T: Synth> {
 }
 
 impl<T: Synth> Music<T> {
-    fn duration(&self) -> Duration {
+    fn duration(&self) -> Flick {
         use Music::*;
         match self {
             Prim(p) => p.duration(),
             Para(a, b) => {
-                // XXX: max-function equivalent for floats?
-                let (a, b) = (a.duration(), b.duration());
-                if a > b {
-                    a
-                } else {
-                    b
-                }
+                max(a.duration(), b.duration())
             }
             Seq(a, b) => a.duration() + b.duration(),
             Modify(c, a) => unimplemented!(),
@@ -68,11 +71,11 @@ impl<T: Synth> Music<T> {
 }
 
 impl<T: Synth> Synth for Music<T> {
-    fn sample(&self, t: Duration) -> f32 {
+    fn sample(&self, t: Flick) -> Sample {
         use Music::*;
         match self {
-            Prim(p) => clamp(p.sample(t)),
-            Para(a, b) => clamp(a.sample(t) + b.sample(t)),
+            Prim(p) => p.sample(t),
+            Para(a, b) => a.sample(t).saturating_add(b.sample(t)),
             Seq(a, b) => {
                 let t1 = a.duration();
                 if t <= t1 {
@@ -83,15 +86,5 @@ impl<T: Synth> Synth for Music<T> {
             }
             Modify(c, a) => unimplemented!(),
         }
-    }
-}
-
-fn clamp(a: f32) -> f32 {
-    if a < -1.0 {
-        -1.0
-    } else if a > 1.0 {
-        1.0
-    } else {
-        a
     }
 }

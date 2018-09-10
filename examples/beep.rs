@@ -1,17 +1,18 @@
 extern crate cpal;
 extern crate bloop;
 
-use bloop::{Synth, Duration, Music, Primitive};
+use bloop::{Synth, Flick, Sample, Music, Primitive};
 use std::f64::consts::PI;
 
 struct SineWave {
     pitch: f64,
-    volume: f32,
+    volume: f64,
 }
 
 impl Synth for SineWave {
-    fn sample(&self, t: Duration) -> f32 {
-        self.volume * (t * self.pitch * 2.0 * PI).sin() as f32
+    fn sample(&self, t: Flick) -> Sample {
+        (self.volume * (t as f64 * self.pitch / bloop::FLICKS_PER_SECOND as f64 * 2.0 * PI).sin() * 127.0)
+            as Sample
     }
 }
 
@@ -22,15 +23,17 @@ fn main() {
     let stream_id = event_loop.build_output_stream(&device, &format).unwrap();
     event_loop.play_stream(stream_id.clone());
 
-    let mut tick = 0f32;
-    let sample_rate = format.sample_rate.0 as f32;
+    let mut tick = 0u64;
+    let rate_multiplier = bloop::FLICKS_PER_SECOND / format.sample_rate.0 as u64;
 
-    let music = Music::Prim(Primitive::Note(5.0, SineWave { pitch: 440.0, volume: 0.5 }));
+    let music = Music::Prim(Primitive::Note(
+            5 * bloop::FLICKS_PER_SECOND, SineWave { pitch: 440.0, volume: 0.5 }));
 
     // Produce a sinusoid of maximum amplitude.
     let mut next_value = || {
-        tick += 1.0;
-        music.sample((tick / sample_rate) as Duration)
+        tick += 1;
+        let sample = music.sample(tick * rate_multiplier);
+        (sample as f32) / 128.0
     };
 
     event_loop.run(move |_, data| {
