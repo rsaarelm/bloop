@@ -25,8 +25,12 @@ impl<T: Synth> Synth for Primitive<T> {
     fn sample(&self, t: Duration) -> f32 {
         use Primitive::*;
         match self {
-            Note(d, a) => if t <= *d { a.sample(t) } else { 0.0 }
-            Rest(_) => 0.0
+            Note(d, a) => if t <= *d {
+                a.sample(t)
+            } else {
+                0.0
+            },
+            Rest(_) => 0.0,
         }
     }
 }
@@ -51,10 +55,14 @@ impl<T: Synth> Music<T> {
             Para(a, b) => {
                 // XXX: max-function equivalent for floats?
                 let (a, b) = (a.duration(), b.duration());
-                if a > b { a } else { b }
+                if a > b {
+                    a
+                } else {
+                    b
+                }
             }
             Seq(a, b) => a.duration() + b.duration(),
-            Modify(c, a) => unimplemented!()
+            Modify(c, a) => unimplemented!(),
         }
     }
 }
@@ -73,7 +81,7 @@ impl<T: Synth> Synth for Music<T> {
                     b.sample(t - t1)
                 }
             }
-            Modify(c, a) => unimplemented!()
+            Modify(c, a) => unimplemented!(),
         }
     }
 }
