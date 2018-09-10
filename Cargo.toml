@@ -1,0 +1,11 @@
+[package]
+name = "bloop"
+version = "0.1.0"
+authors = ["Risto Saarelma <risto.saarelma@iki.fi>"]
+description = "Audio synthesizer"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+
+[dev-dependecies]
+cpal = "0.8"
