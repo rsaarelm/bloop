@@ -1,4 +1,19 @@
 extern crate cpal;
+extern crate bloop;
+
+use bloop::{Synth, Duration, Music, Primitive};
+use std::f64::consts::PI;
+
+struct SineWave {
+    pitch: f64,
+    volume: f32,
+}
+
+impl Synth for SineWave {
+    fn sample(&self, t: Duration) -> f32 {
+        self.volume * (t * self.pitch * 2.0 * PI).sin() as f32
+    }
+}
 
 fn main() {
     let device = cpal::default_output_device().expect("Failed to get default output device");
@@ -7,13 +22,15 @@ fn main() {
     let stream_id = event_loop.build_output_stream(&device, &format).unwrap();
     event_loop.play_stream(stream_id.clone());
 
+    let mut tick = 0f32;
     let sample_rate = format.sample_rate.0 as f32;
-    let mut sample_clock = 0f32;
+
+    let music = Music::Prim(Primitive::Note(5.0, SineWave { pitch: 440.0, volume: 0.5 }));
 
     // Produce a sinusoid of maximum amplitude.
     let mut next_value = || {
-        sample_clock = (sample_clock + 1.0) % sample_rate;
-        (sample_clock * 440.0 * 2.0 * 3.141592 / sample_rate).sin()
+        tick += 1.0;
+        music.sample((tick / sample_rate) as Duration)
     };
 
     event_loop.run(move |_, data| {
