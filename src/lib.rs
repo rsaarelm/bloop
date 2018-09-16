@@ -1,4 +1,9 @@
+extern crate cpal;
+
 use std::cmp::max;
+
+mod play;
+pub use play::spawn_cpal_player;
 
 /// Conversion factor for the flick time unit
 pub const FLICKS_PER_SECOND: u64 = 705600000;
@@ -10,7 +15,7 @@ pub type Flick = u64;
 
 pub type Sample = i8;
 
-pub trait Synth {
+pub trait Synth: Send {
     /// Given time in flicks, return sample in [-128, 127].
     fn sample(&self, t: Flick) -> Sample;
 }
