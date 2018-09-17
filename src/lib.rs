@@ -2,16 +2,11 @@ extern crate cpal;
 
 use std::cmp::max;
 
+mod flick;
+pub use flick::{Flick, FLICKS_PER_SECOND};
+
 mod play;
 pub use play::spawn_cpal_player;
-
-/// Conversion factor for the flick time unit
-pub const FLICKS_PER_SECOND: u64 = 705600000;
-
-/// Flick time unit.
-///
-/// See https://github.com/OculusVR/Flicks
-pub type Flick = u64;
 
 pub type Sample = i8;
 

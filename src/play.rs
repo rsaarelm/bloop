@@ -2,7 +2,7 @@ use cpal;
 use std::sync::{Arc, Mutex};
 use std::thread;
 
-use {Synth, FLICKS_PER_SECOND};
+use {Flick, Synth, FLICKS_PER_SECOND};
 
 /// Spin off a player thread.
 pub fn spawn_cpal_player<S: Synth + 'static>(synth: Arc<Mutex<S>>) {
@@ -23,7 +23,7 @@ pub fn spawn_cpal_player<S: Synth + 'static>(synth: Arc<Mutex<S>>) {
 
             let mut next_value = || {
                 tick += 1;
-                let sample = synth.sample(tick * rate_multiplier);
+                let sample = synth.sample(Flick(tick * rate_multiplier));
                 (sample as f32) / 128.0
             };
 
