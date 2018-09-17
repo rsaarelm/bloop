@@ -8,8 +8,8 @@ stdenv.mkDerivation {
     # Dev stuff cargo dependencies might need
     cmake gcc zlib pkgconfig openssl
 
-    # For cpal
-    alsaLib
+    # Project dependencies
+    alsaLib SDL2
   ];
 
   # XXX: This isn't the proper Nix way to do setup
@@ -34,5 +34,5 @@ stdenv.mkDerivation {
 
   # Stuff needed to run Glium programs.
   LD_LIBRARY_PATH = with pkgs.xlibs;
-     "${alsaLib}/lib:";
+     "${alsaLib}/lib:${SDL2}/lib:";
 }
