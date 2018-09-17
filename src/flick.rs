@@ -3,7 +3,7 @@ use std::ops::{Add, AddAssign, Sub, SubAssign};
 use std::time::Duration;
 
 /// Conversion factor for the flick time unit
-pub const FLICKS_PER_SECOND: u64 = 705600000;
+pub const FLICKS_PER_SECOND: u64 = 705_600_000;
 
 /// Flick time unit.
 ///
@@ -17,7 +17,7 @@ impl Flick {
     }
 
     pub fn from_nanoseconds(nanos: u64) -> Flick {
-        Flick(nanos * FLICKS_PER_SECOND / 1_000_000_000)
+        Flick(nanos * 7056 / 10_000)
     }
 }
 
@@ -29,7 +29,7 @@ impl fmt::Display for Flick {
 
 impl From<Duration> for Flick {
     fn from(d: Duration) -> Flick {
-        let nano = d.as_secs() * 1_000_000_000 + d.subsec_nanos() as u64;
+        let nano = d.as_secs() as u64 * 1_000_000_000 + d.subsec_nanos() as u64;
         Flick::from_nanoseconds(nano)
     }
 }
