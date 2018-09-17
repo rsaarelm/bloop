@@ -30,7 +30,7 @@ stdenv.mkDerivation {
 
   # Set Environment Variables
   RUST_BACKTRACE = 1;
-  RUST_LOG = "info";
+  # RUST_LOG = "info";
 
   # Stuff needed to run Glium programs.
   LD_LIBRARY_PATH = with pkgs.xlibs;
