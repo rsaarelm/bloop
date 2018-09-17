@@ -10,9 +10,38 @@ pub use play::spawn_cpal_player;
 
 pub type Sample = i8;
 
+#[derive(Copy, Clone, Eq, PartialEq, Debug)]
+pub enum Note {
+    A,
+    As,
+    B,
+    C,
+    Cs,
+    D,
+    Ds,
+    E,
+    F,
+    Fs,
+    G,
+    Gs,
+}
+
+impl Note {
+    pub fn freq(self, octave: i32) -> f64 {
+        27.5 * 2.0f64.powi(octave) * 2.0f64.powf(self as usize as f64 / 12.0)
+    }
+}
+
 pub trait Synth: Send {
     /// Given time in flicks, return sample in [-128, 127].
     fn sample(&self, t: Flick) -> Sample;
+}
+
+impl<T: Synth> Synth for Vec<T> {
+    fn sample(&self, t: Flick) -> Sample {
+        self.iter()
+            .fold(0, |acc, s| acc.saturating_add(s.sample(t)))
+    }
 }
 
 pub enum Primitive<T: Synth> {
@@ -61,9 +90,7 @@ impl<T: Synth> Music<T> {
         use Music::*;
         match self {
             Prim(p) => p.duration(),
-            Para(a, b) => {
-                max(a.duration(), b.duration())
-            }
+            Para(a, b) => max(a.duration(), b.duration()),
             Seq(a, b) => a.duration() + b.duration(),
             Modify(c, a) => unimplemented!(),
         }

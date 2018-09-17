@@ -1,10 +1,10 @@
 extern crate bloop;
 extern crate sdl2;
 
-use bloop::{Flick, Sample, Synth, FLICKS_PER_SECOND};
+use bloop::{Flick, Note, Sample, Synth};
 use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
-use std::collections::HashSet;
+use sdl2::keyboard::Scancode;
+use std::collections::HashMap;
 use std::f64::consts::PI;
 use std::ops::{Add, Mul, Sub};
 use std::sync::{Arc, Mutex};
@@ -55,21 +55,23 @@ impl ADSR {
     }
 }
 
-struct Piano {
+struct Channel {
+    pitch: f64,
     start: Flick,
     end: Option<Flick>,
 }
 
-impl Piano {
-    pub fn new() -> Piano {
-        Piano {
+impl Channel {
+    pub fn new(pitch: f64) -> Channel {
+        Channel {
+            pitch,
             start: Flick(std::u64::MAX / 2),
             end: None,
         }
     }
 }
 
-impl Synth for Piano {
+impl Synth for Channel {
     fn sample(&self, t: Flick) -> Sample {
         let adsr = ADSR::new(
             Flick::from_seconds(1.0 / 8.0),
@@ -86,11 +88,63 @@ impl Synth for Piano {
                 self.end.map(|x| Flick(x.0.saturating_sub(self.start.0))),
             )
         };
-        let pitch = 440.0;
 
-        (volume * (t.0 as f64 * pitch / bloop::FLICKS_PER_SECOND as f64 * 2.0 * PI).sin() * 127.0)
-            as Sample
+        (volume
+            * (t.0 as f64 * self.pitch / bloop::FLICKS_PER_SECOND as f64 * 2.0 * PI).sin()
+            * 127.0) as Sample
     }
+}
+
+fn piano() -> (Vec<Channel>, HashMap<Scancode, usize>) {
+    use Scancode::*;
+
+    let mut ret = (Vec::new(), HashMap::new());
+
+    for (i, (k, note, octave)) in [
+        // TODO: Use notes
+        (Z, Note::C, 4),
+        (S, Note::Cs, 4),
+        (X, Note::D, 4),
+        (D, Note::Ds, 4),
+        (C, Note::E, 4),
+        (V, Note::F, 4),
+        (G, Note::Fs, 4),
+        (B, Note::G, 4),
+        (H, Note::Gs, 4),
+        (N, Note::A, 5),
+        (J, Note::As, 5),
+        (M, Note::B, 5),
+        (Comma, Note::C, 5),
+        (L, Note::Cs, 5),
+        (Period, Note::D, 5),
+        (Semicolon, Note::Ds, 5),
+        (Slash, Note::E, 5),
+        (Q, Note::C, 5),
+        (Num2, Note::Cs, 5),
+        (W, Note::D, 5),
+        (Num3, Note::Ds, 5),
+        (E, Note::E, 5),
+        (R, Note::F, 5),
+        (Num5, Note::Fs, 5),
+        (T, Note::G, 5),
+        (Num6, Note::Gs, 5),
+        (Y, Note::A, 6),
+        (Num7, Note::As, 6),
+        (U, Note::B, 6),
+        (I, Note::C, 6),
+        (Num9, Note::Cs, 6),
+        (O, Note::D, 6),
+        (Num0, Note::Ds, 6),
+        (P, Note::E, 6),
+    ]
+        .iter()
+        .enumerate()
+    {
+        ret.0.push(Channel::new(note.freq(*octave)));
+        ret.1.insert(*k, i);
+    }
+
+    ret
 }
 
 pub fn main() {
@@ -105,8 +159,10 @@ pub fn main() {
 
     let mut events = sdl_context.event_pump().unwrap();
 
-    let mut piano = Arc::new(Mutex::new(Piano::new()));
-    let mut t_zero = SystemTime::now();
+    let (piano, keymap) = piano();
+    let piano = Arc::new(Mutex::new(piano));
+
+    let t_zero = SystemTime::now();
 
     bloop::spawn_cpal_player(piano.clone());
 
@@ -124,10 +180,11 @@ pub fn main() {
                 ..
             } = event
             {
-                println!("down {}", t);
-                let mut piano = piano.lock().unwrap();
-                piano.start = t;
-                piano.end = None;
+                if let Some(&idx) = keymap.get(&scan) {
+                    let mut piano = piano.lock().unwrap();
+                    piano[idx].start = t;
+                    piano[idx].end = None;
+                }
             }
 
             if let Event::KeyUp {
@@ -136,9 +193,10 @@ pub fn main() {
                 ..
             } = event
             {
-                println!("  up {}", t);
-                let mut piano = piano.lock().unwrap();
-                piano.end = Some(t);
+                if let Some(&idx) = keymap.get(&scan) {
+                    let mut piano = piano.lock().unwrap();
+                    piano[idx].end = Some(t);
+                }
             }
         }
     }
